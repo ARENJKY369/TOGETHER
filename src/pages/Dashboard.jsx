@@ -255,39 +255,43 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Recent activity / quick actions — Phase 2 now live */}
+        {/* Phase 3 now live: rituals */}
         <div className="card full" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,240,241,0.9))' }}>
           <h3 style={{ marginBottom: 14 }}>Today’s tiny rituals ✨</h3>
           <div className="dashboard-grid">
-            <div style={{ background: 'white', borderRadius: 16, padding: 16, border: '1px solid rgba(0,0,0,0.04)' }}>
+            <div style={{ background: 'white', borderRadius: 16, padding: 16, border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 16px rgba(200,107,122,0.08)' }}>
               <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>💭</div>
-              <div style={{ fontWeight: 700 }}>Thinking of you</div>
-              <div className="text-soft" style={{ fontSize: '0.85rem', marginBottom: 10 }}>Send a lightweight ping — wave, heart-burst, or hug. No pressure to reply.</div>
-              <button className="btn btn-secondary btn-small" onClick={()=>{ alert('💕 Ping sent! (Phase 3: will notify partner & animate)'); triggerConfetti(); }}>Send a ping →</button>
+              <div style={{ fontWeight: 700 }}>Thinking of you — live!</div>
+              <div className="text-soft" style={{ fontSize: '0.85rem', marginBottom: 10 }}>One tap sends wave/heart/hug to partner, with animation. Optional opens chat.</div>
+              <button className="btn btn-primary btn-small" onClick={()=>navigate('/rituals')}>Send a ping ✨ →</button>
             </div>
-            <div style={{ background: 'white', borderRadius: 16, padding: 16, border: '1px solid rgba(0,0,0,0.04)' }}>
+            <div style={{ background: 'white', borderRadius: 16, padding: 16, border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 16px rgba(200,107,122,0.08)' }}>
               <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>❓</div>
-              <div style={{ fontWeight: 700 }}>Daily Question</div>
-              <div className="text-soft" style={{ fontSize: '0.85rem', marginBottom: 10 }}>One question a day. You both answer, then unlock each other’s replies together.</div>
-              <button className="btn btn-secondary btn-small" onClick={()=>alert('Phase 3 — Daily Questions coming soon! 💌')}>Peek at today’s →</button>
-            </div>
-            <div style={{ background: 'white', borderRadius: 16, padding: 16, border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 16px rgba(200,107,122,0.12)' }}>
-              <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>💬</div>
-              <div style={{ fontWeight: 700 }}>Chat — live now!</div>
-              <div className="text-soft" style={{ fontSize: '0.85rem', marginBottom: 10 }}>Real-time chat with stickers, GIFs, quick reactions, typing & seen. Only you two, ever.</div>
-              <button className="btn btn-primary btn-small" onClick={()=>navigate('/chat')}>Open chat 💌 →</button>
+              <div style={{ fontWeight: 700 }}>Daily Question — live!</div>
+              <div className="text-soft" style={{ fontSize: '0.85rem', marginBottom: 10 }}>Same question each day, unlock together after both answer. Streaks without shame.</div>
+              <button className="btn btn-primary btn-small" onClick={()=>navigate('/rituals')}>Answer today’s →</button>
             </div>
             <div style={{ background: 'white', borderRadius: 16, padding: 16, border: '1px solid rgba(0,0,0,0.04)' }}>
-              <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>📚</div>
-              <div style={{ fontWeight: 700 }}>Our Story</div>
-              <div className="text-soft" style={{ fontSize: '0.85rem', marginBottom: 10 }}>Auto-built timeline of your moments: photos, answers, visits, anniversaries.</div>
-              <button className="btn btn-secondary btn-small" onClick={()=>alert('Phase 3 — Our Story timeline coming soon! 📸')}>View timeline →</button>
+              <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>💬</div>
+              <div style={{ fontWeight: 700 }}>Chat</div>
+              <div className="text-soft" style={{ fontSize: '0.85rem', marginBottom: 10 }}>Real-time chat with stickers, GIFs, quick reactions. Only you two, ever.</div>
+              <button className="btn btn-secondary btn-small" onClick={()=>navigate('/chat')}>Open chat 💌 →</button>
             </div>
+            <div style={{ background: 'white', borderRadius: 16, padding: 16, border: '1px solid rgba(0,0,0,0.04)', boxShadow: '0 4px 16px rgba(200,107,122,0.08)' }}>
+              <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>📚</div>
+              <div style={{ fontWeight: 700 }}>Our Story + Feed — live!</div>
+              <div className="text-soft" style={{ fontSize: '0.85rem', marginBottom: 10 }}>Auto timeline from feed, questions, syncs, pings. Pin core memories, bucket list, calendar.</div>
+              <button className="btn btn-primary btn-small" onClick={()=>navigate('/rituals')}>View story →</button>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
+            <button className="btn btn-secondary" onClick={()=>navigate('/feed')}>📸 Private feed</button>
+            <button className="btn btn-secondary" onClick={()=>navigate('/rituals')}>✨ Daily rituals</button>
           </div>
           <div style={{ marginTop: 16, padding: 12, borderRadius: 12, background: '#FFF8F0', display: 'flex', gap: 10, alignItems: 'center' }}>
             <span style={{ fontSize: '1.2rem' }}>🛡️</span>
             <span className="text-soft" style={{ fontSize: '0.85rem' }}>
-              <strong>Privacy check:</strong> Row Level Security is active. Your couple_id is <code style={{ background: 'white', padding: '2px 6px', borderRadius: 6 }}>{couple?.id?.slice(0,8) || profile?.couple_id?.slice(0,8) || '—'}</code> and no other couple can query your data via API — enforced in Postgres, not just UI. Chat is also isolated by couple_id.
+              <strong>Privacy check:</strong> All Phase 3 tables (daily_answers, feed, pings, sync, bucket, calendar) filtered by <code>couple_id = get_my_couple_id()</code>. No cross-couple reads possible.
             </span>
           </div>
         </div>

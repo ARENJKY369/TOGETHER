@@ -43,14 +43,22 @@ export function getMockDB() {
     const raw = localStorage.getItem(MOCK_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
-      // Ensure Phase 2 fields exist
+      // Ensure Phase 2 & 3 fields exist
       if (!parsed.messages) parsed.messages = []
       if (!parsed.reactions) parsed.reactions = []
       if (!parsed.users) parsed.users = []
+      if (!parsed.daily_questions) parsed.daily_questions = []
+      if (!parsed.daily_answers) parsed.daily_answers = []
+      if (!parsed.feed_posts) parsed.feed_posts = []
+      if (!parsed.pings) parsed.pings = []
+      if (!parsed.sync_taps) parsed.sync_taps = []
+      if (!parsed.bucket_list) parsed.bucket_list = []
+      if (!parsed.calendar_events) parsed.calendar_events = []
+      if (!parsed.streak) parsed.streak = {}
       return parsed
     }
   } catch {}
-  return { profiles: [], couples: [], currentUserId: null, users: [], messages: [], reactions: [] }
+  return { profiles: [], couples: [], currentUserId: null, users: [], messages: [], reactions: [], daily_questions: [], daily_answers: [], feed_posts: [], pings: [], sync_taps: [], bucket_list: [], calendar_events: [], streak: {} }
 }
 
 export function saveMockDB(db) {

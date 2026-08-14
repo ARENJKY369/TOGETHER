@@ -1,9 +1,11 @@
 # Together — a cozy daily companion for LDR couples 💕
 
-> **Phase 1 + Phase 2 complete** — Auth, pairing, onboarding, dashboard + Real-time chat with stickers, GIFs, reactions, typing & seen.
+> **Phase 1 + 2 + 3 complete** — Auth & RLS, real-time chat, daily rituals, feed, Our Story, bucket list, calendar, sync & pings.
 >
 > Live preview (dev): `npm run dev` → http://localhost:5173
-> Build: `npm run build`
+> Build: `npm run build` • Deploy: Vercel/Netlify
+
+Phase 1 ✅ Phase 2 ✅ Phase 3 ✅ — see below for details. Phase 4 (video) + Phase 5 (games) next.
 
 ## Design Philosophy
 Warm blush pinks, peach/sunset gradients, cream backgrounds, dusty rose accent. Rounded corners everywhere (16–24px), soft shadows, Nunito body + Fraunces headings. Ambient background shifts tone (dawn/day/dusk/night) based on both partners' local times.
@@ -159,26 +161,99 @@ npm run dev
 - `src/pages/Chat.jsx` — full page: header with partner avatar/green dot, search, toast, message list auto-scroll, typing bubble, quick bar, input with sticker/gif toggles
 - Updated `src/lib/supabase.js` — mock DB now includes messages/reactions + BroadcastChannel + custom events for same-tab realtime
 
+## Phase 3 — Daily Rituals & Memory Bank (NEW ✅)
+
+This phase turns ordinary moments into celebrated ones, without guilt.
+
+### Daily Question — unlock together
+- Same rotating question each day for both partners (deterministic rotation: `days since epoch % questions.length`, 20 seeded questions mix playful + meaningful).
+- Tables: `daily_questions` (global) + `daily_answers` (per couple, per question, per user, unique constraint).
+- Flow: If you haven't answered → textarea + save. If you have but partner hasn't → locked card showing your answer + “Waiting for partner… no peeking!” + dots. When both answered → confetti + side-by-side reveal, logged to Our Story.
+- RLS: answers isolated by `couple_id = get_my_couple_id()` + `user_id = auth.uid()`.
+
+### Streaks — gentle, never shaming
+- `computeStreakFromAnswers()` groups by date where both users answered that day, computes current streak (consecutive from most recent backwards), longest streak, total days, history.
+- UI: pill with 🔥 count, banner “🌱 Fresh start — new streak begins with today” if current=0, so break is reframed as “new streak started”.
+- Milestones 7/30/100 days trigger confetti + special pill.
+
+### Shared private feed — chronological photo/note feed
+- `feed_posts` table already existed, now fully used: `content_type` note/photo/memory, `content_text`, `image_url`, `is_pinned` (core memory).
+- Composer with type pills, textarea, image URL, posts instantly with confetti.
+- Pin toggles core memory flag.
+- Page `/feed` shows 100 latest, searchable via chronological order, only couple.
+
+### Thinking of You button
+- New table `pings`: `couple_id`, `sender_id`, `variant` (wave/heart/hug/kiss/sparkle), optional message, `created_at`.
+- Variants with emoji, gradient, label: 👋 wave, 💖 heart-burst, 🫂 hug, 😘 kiss, ✨ sparkle.
+- One-tap send, lightweight, no pressure to reply, animation + confetti, realtime via `pings` channel + BroadcastChannel fallback.
+- Shown on Rituals page + dashboard.
+
+### Sync Moment
+- Table `sync_taps`: each tap has `tapped_at`, `is_synced`, `synced_with` ref.
+- Logic: when user taps, look for partner's recent tap within 5 min not yet synced → if found, mark both as synced and create synced event, else record pending.
+- UI: “Tap to sync 🙌” button, shows result “You synced! 💫” with confetti or “Tap recorded — if partner taps within 5 min, you’ll sync”.
+- Logged to Our Story as ✨ synced moment.
+
+### Our Story timeline — auto-generated scrollable memory lane
+- Aggregation function `fetchStoryTimeline()` merges: feed posts + daily answers (only when both answered same day) + pings + synced syncs + completed bucket items.
+- Sorted desc, vertical line, card per type with icon.
+- Pin filter: show only core memories (is_pinned) or all.
+- Users can pin favorite feed moments as core memories.
+
+### Auto-celebration screens
+- `checkMilestones()` looks at relationship start, LDR start, days together, streak.
+- Milestones: 7/30/50/100/200/365/500/1000 days together, 7/30/60/100/200/365 LDR days, anniversary same month/day, streak 7/30/100.
+- Shows modal with gradient card + confetti, stores last shown date in localStorage to avoid spam, gentle copy “A moment to celebrate — not just a counter”.
+
+### Shared bucket list
+- Table `bucket_list_items`: title, description, created_by, is_completed, completed_at.
+- UI: add form, pending list with circle toggle, completed list with check + line-through, confetti on complete.
+
+### Shared calendar
+- Table `calendar_events`: title, event_type (visit/call/anniversary/birthday/date/custom), event_date, event_time, description.
+- UI: upcoming vs past sections, emoji per type, add form with date/time, delete.
+
+### RLS — still the whole product
+- All Phase 3 tables: `pings`, `sync_taps`, `bucket_list_items`, `calendar_events`, `couple_streaks` have `couple_id = get_my_couple_id()` policies, INSERT checks user ownership.
+- Mock DB extended with all new arrays + realtime via BroadcastChannel.
+- Migration: `supabase/migration_phase3.sql`.
+
+### Files added
+- `src/lib/rituals.js` — full abstraction for daily Q, feed, pings, sync, bucket, calendar, timeline, milestones, mock + Supabase.
+- `src/components/rituals/*`: DailyQuestionCard, ThinkingOfYou, SyncMoment, Feed (composer + post), BucketList, Calendar, OurStoryTimeline
+- `src/pages/Feed.jsx` (real private feed) + `src/pages/Rituals.jsx` (daily rituals + all Phase 3 features unified)
+- Updated `Layout` nav (Feed, Rituals), `Dashboard` now links to rituals, `supabase.js` mock extended.
+
+### How to test Phase 3 (mock or real)
+- Daily Question: both users open Rituals → same question → one answers → sees locked waiting, other answers → both see confetti + side-by-side.
+- Streak: answer consecutive days (change system date in mock? or just see total count).
+- Feed: post note/photo, pin as core memory, check timeline.
+- Pings: send wave/heart, see realtime on other tab.
+- Sync: both tap within 5 min → synced! logged.
+- Bucket list + Calendar: add/toggle/delete.
+- Our Story: shows merged timeline, pin filter.
+
 ## Next Phases (still upcoming)
-- **Phase 3**: Daily question (both answer then unlock), streaks with gentle reframing, shared feed, Thinking of You button, Sync Moment, Our Story timeline, bucket list, shared calendar
-- **Phase 4**: Video calls via Daily.co / Twilio / Agora SDK
-- **Phase 5**: Games (Two Truths and a Lie, Collaborative drawing, trivia, Wordle-style, This or That)
+- **Phase 4**: Video calls via Daily.co / Twilio / Agora SDK — Call Partner button, online status, scheduled calls, virtual date mode, history into story
+- **Phase 5**: Games Together — Two Truths and a Lie, collaborative drawing, trivia, Wordle-style, This or That, Game Night quick-start
 
 ## Build Order Note
-Phase 1 RLS verified. Phase 2 keeps same isolation, adds realtime, no polling, server-side validation. App remains multi-tenant, no hardcoded data. After each phase, RLS tested before moving on.
+Phase 1 + 2 RLS verified. Phase 3 keeps same isolation, extends with 5 new tables all filtered by `get_my_couple_id()`. Multi-tenant from day one, no hardcoded data.
 
 ## Quick Demo Flow (mock mode or real)
-1. Sign up as `alice@example.com` / `password123` → onboarding → get invite code `ABC123`
-2. In incognito, sign up as `bob@example.com` → onboarding → enter `ABC123` in Pair page
-3. Both land on Dashboard seeing each other's times, shared countdown, same couple_id, RLS isolated
-4. Try to query other couples via API with anonymous key + JWT — blocked by RLS
+1. Sign up as `alice@example.com` / `password123` → onboarding → get invite code
+2. Incognito sign up as `bob@example.com` → enter code → both paired
+3. Chat: realtime stickers/GIFs
+4. Rituals: answer daily question together, see unlock + streak, send ping, sync tap
+5. Feed: post memory, pin, see in Our Story with bucket + calendar
+6. Try to query other couple's feed/answers via API — blocked by RLS
 
 ## Aesthetic Details
-- Colors: cream #FFF7EE, blush #FFD6D9/#FFB3BB, peach #FFDAB7, dusty rose #C86B7A, terracotta #D77A61
+- Colors: cream #FFF7EE, blush #FFD6D9/#FFB3BB, peach #FFDAB7, dusty rose #C86B7A, terracotta #D77A61, plum #8E5A6B for night
 - Fonts: Nunito 400-800 + Fraunces
-- Animations: float 3s, fadeIn 0.4s, confetti via canvas-confetti, heart-burst on pings
-- Illustrations: emoji-based for Phase 1 (line-art blob illustrations planned for later)
+- Animations: float, fadeIn, gentleBounce, confetti, heart-burst (1.2s), loading dots
+- Rounded 16-24px, soft shadows, glass blur, mobile-first bottom nav with 5 items
 
 ---
 
-Ready for your review! Ask to continue with Phase 2 (Chat, Stickers & GIFs) when you’re happy with Phase 1. 💌
+Phase 3 complete! Ask to continue with Phase 4 (Video Calls) when ready. 💕

@@ -239,6 +239,68 @@ create table if not exists public.feed_posts (
 create index if not exists idx_feed_couple on public.feed_posts(couple_id, created_at desc);
 
 -- ====================
+-- Phase 3 tables
+-- ====================
+-- Thinking of you pings
+create table if not exists public.pings (
+  id uuid primary key default uuid_generate_v4(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  sender_id uuid not null references public.profiles(id) on delete cascade,
+  variant text not null default 'heart' check (variant in ('wave','heart','hug','kiss','sparkle')),
+  message text,
+  created_at timestamptz default now() not null
+);
+create index if not exists idx_pings_couple on public.pings(couple_id, created_at desc);
+
+-- Sync moments - each tap, then paired within 5 min creates a synced event
+create table if not exists public.sync_taps (
+  id uuid primary key default uuid_generate_v4(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  tapped_at timestamptz default now() not null,
+  is_synced boolean default false,
+  synced_with uuid references public.sync_taps(id) on delete set null,
+  created_at timestamptz default now() not null
+);
+create index if not exists idx_sync_couple on public.sync_taps(couple_id, tapped_at desc);
+
+-- Bucket list
+create table if not exists public.bucket_list_items (
+  id uuid primary key default uuid_generate_v4(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  title text not null,
+  description text,
+  created_by uuid not null references public.profiles(id) on delete set null,
+  is_completed boolean default false,
+  completed_at timestamptz,
+  created_at timestamptz default now() not null
+);
+create index if not exists idx_bucket_couple on public.bucket_list_items(couple_id, created_at desc);
+
+-- Shared calendar
+create table if not exists public.calendar_events (
+  id uuid primary key default uuid_generate_v4(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  title text not null,
+  event_type text default 'custom' check (event_type in ('visit','call','anniversary','birthday','date','custom')),
+  event_date date not null,
+  event_time time,
+  description text,
+  created_by uuid not null references public.profiles(id) on delete set null,
+  created_at timestamptz default now() not null
+);
+create index if not exists idx_calendar_couple on public.calendar_events(couple_id, event_date asc);
+
+-- Couple streaks (optional materialized, but computed works too - we store for quick access)
+create table if not exists public.couple_streaks (
+  couple_id uuid primary key references public.couples(id) on delete cascade,
+  current_streak int default 0,
+  longest_streak int default 0,
+  last_completed_date date,
+  updated_at timestamptz default now() not null
+);
+
+-- ====================
 -- RLS ENABLE
 -- ====================
 alter table public.profiles enable row level security;
@@ -248,6 +310,11 @@ alter table public.message_reactions enable row level security;
 alter table public.daily_questions enable row level security;
 alter table public.daily_answers enable row level security;
 alter table public.feed_posts enable row level security;
+alter table public.pings enable row level security;
+alter table public.sync_taps enable row level security;
+alter table public.bucket_list_items enable row level security;
+alter table public.calendar_events enable row level security;
+alter table public.couple_streaks enable row level security;
 
 -- Drop existing policies to re-create idempotently
 do $$
@@ -275,10 +342,19 @@ begin
   -- reactions
   drop policy if exists "Couple members manage reactions" on public.message_reactions;
   drop policy if exists "Couple members view reactions" on public.message_reactions;
+  drop policy if exists "Couple members view reactions" on public.message_reactions;
+  drop policy if exists "Couple members manage reactions" on public.message_reactions;
   -- daily
   drop policy if exists "Anyone can view daily questions" on public.daily_questions;
   drop policy if exists "Couple members manage daily answers" on public.daily_answers;
   drop policy if exists "Couple members manage feed" on public.feed_posts;
+  -- phase 3
+  drop policy if exists "Couple members manage pings" on public.pings;
+  drop policy if exists "Couple members manage sync" on public.sync_taps;
+  drop policy if exists "Couple members manage bucket" on public.bucket_list_items;
+  drop policy if exists "Couple members manage calendar" on public.calendar_events;
+  drop policy if exists "Couple members manage streaks" on public.couple_streaks;
+  drop policy if exists "Couple members view streaks" on public.couple_streaks;
 end $$;
 
 -- PROFILES policies
@@ -370,6 +446,40 @@ on public.feed_posts for all
 using (couple_id = public.get_my_couple_id())
 with check (couple_id = public.get_my_couple_id() and author_id = auth.uid());
 
+-- PHASE 3: PINGS (Thinking of you)
+create policy "Couple members manage pings"
+on public.pings for all
+using (couple_id = public.get_my_couple_id())
+with check (couple_id = public.get_my_couple_id() and sender_id = auth.uid());
+
+-- SYNC TAPS
+create policy "Couple members manage sync"
+on public.sync_taps for all
+using (couple_id = public.get_my_couple_id())
+with check (couple_id = public.get_my_couple_id() and user_id = auth.uid());
+
+-- BUCKET LIST
+create policy "Couple members manage bucket"
+on public.bucket_list_items for all
+using (couple_id = public.get_my_couple_id())
+with check (couple_id = public.get_my_couple_id());
+
+-- CALENDAR
+create policy "Couple members manage calendar"
+on public.calendar_events for all
+using (couple_id = public.get_my_couple_id())
+with check (couple_id = public.get_my_couple_id());
+
+-- STREAKS
+create policy "Couple members view streaks"
+on public.couple_streaks for select
+using (couple_id = public.get_my_couple_id());
+
+create policy "Couple members manage streaks"
+on public.couple_streaks for all
+using (couple_id = public.get_my_couple_id())
+with check (couple_id = public.get_my_couple_id());
+
 -- ====================
 -- STORAGE bucket for avatars & feed images
 -- ====================
@@ -414,5 +524,15 @@ insert into public.daily_questions (question_text, category) values
 ('If our love had a scent, what would it smell like?', 'playful'),
 ('What is one thing you appreciated about me this week?', 'appreciation'),
 ('What is a tiny ritual you want us to have every day?', 'ritual'),
-('What would be our perfect lazy Sunday together?', 'future')
+('What would be our perfect lazy Sunday together?', 'future'),
+('What is one thing you’ve learned about love from being long-distance?', 'reflective'),
+('If we had a shared playlist for this week, what 3 songs would be on it?', 'playful'),
+('What is a silly habit of mine you secretly adore?', 'love'),
+('What would our future home smell like?', 'future'),
+('What is one worry you want me to hold gently for you this week?', 'support'),
+('What is your favorite way I say I love you without words?', 'love'),
+('If our relationship was a movie, what would the trailer voiceover say?', 'playful'),
+('What is a small adventure we haven’t done yet but should?', 'future'),
+('What moment from this week would you put in a bottle to save forever?', 'memory'),
+('What do you want to celebrate about us today, no matter how tiny?', 'appreciation')
 on conflict do nothing;

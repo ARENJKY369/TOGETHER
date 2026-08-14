@@ -8,6 +8,8 @@ import Onboarding from './pages/Onboarding'
 import Pairing from './pages/Pairing'
 import Settings from './pages/Settings'
 import Chat from './pages/Chat'
+import Feed from './pages/Feed'
+import Rituals from './pages/Rituals'
 
 function Protected({ children }) {
   const { user, loading, initialized } = useAuth()
@@ -42,7 +44,9 @@ export default function App() {
             <Route path="/invite/:code" element={<Protected><InviteRoute /></Protected>} />
             <Route path="/settings" element={<Protected><Settings /></Protected>} />
             <Route path="/chat" element={<Protected><Chat /></Protected>} />
-            <Route path="/feed" element={<Protected><Dashboard /></Protected>} />
+            <Route path="/feed" element={<Protected><Feed /></Protected>} />
+            <Route path="/rituals" element={<Protected><Rituals /></Protected>} />
+            <Route path="/memories" element={<Protected><Rituals /></Protected>} />
             <Route path="/" element={<Protected><Dashboard /></Protected>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

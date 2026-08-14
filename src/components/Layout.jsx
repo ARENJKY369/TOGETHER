@@ -5,7 +5,8 @@ import AmbientBackground from './AmbientBackground'
 const NAV_ITEMS = [
   { path: '/', label: 'Home', icon: '🏠', activeIcon: '🏡' },
   { path: '/chat', label: 'Chat', icon: '💬', activeIcon: '💌' },
-  { path: '/feed', label: 'Memories', icon: '📸', comingSoon: true },
+  { path: '/feed', label: 'Feed', icon: '📸', activeIcon: '🖼️' },
+  { path: '/rituals', label: 'Rituals', icon: '✨', activeIcon: '💫' },
   { path: '/settings', label: 'Settings', icon: '⚙️' },
 ]
 
@@ -49,9 +50,9 @@ export default function Layout({ children }) {
       {!hideNav && (
         <nav className="mobile-nav">
           {NAV_ITEMS.map(item => {
-            const isActive = location.pathname === item.path
+            const isActive = location.pathname === item.path || (item.path === '/rituals' && (location.pathname === '/memories' || location.pathname === '/rituals'))
             return (
-              <Link key={item.path} to={item.path} className={isActive ? 'active' : ''} onClick={e => { if(item.comingSoon){ e.preventDefault(); alert('Phase 3 — Memories & rituals coming soon! 📸'); } }}>
+              <Link key={item.path} to={item.path} className={isActive ? 'active' : ''}>
                 <span style={{ fontSize: '1.2rem' }}>{isActive ? item.activeIcon || item.icon : item.icon}</span>
                 <span>{item.label}</span>
                 {item.comingSoon && <span style={{ fontSize: '0.55rem', background: 'var(--color-blush-light)', padding: '1px 6px', borderRadius: '999px', marginTop: '2px' }}>soon</span>}
